@@ -1,6 +1,5 @@
 package beyondProjectForOrdersystem.common.configs;
 
-import beyondProjectForOrdersystem.ordering.controller.SseController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
