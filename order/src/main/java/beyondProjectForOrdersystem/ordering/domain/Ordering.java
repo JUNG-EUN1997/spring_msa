@@ -1,7 +1,6 @@
 package beyondProjectForOrdersystem.ordering.domain;
 
 import beyondProjectForOrdersystem.common.domain.BaseTimeEntity;
-import beyondProjectForOrdersystem.member.domain.Member;
 import beyondProjectForOrdersystem.ordering.dto.OrderListResDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,9 +22,8 @@ public class Ordering extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "member_id")
-    private Member member;
+
+    private String memberEmail;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default // 초기값을 설정해주려면 이렇게 해줘야함
@@ -44,7 +42,7 @@ public class Ordering extends BaseTimeEntity {
     public OrderListResDto fromEntity(){
         OrderListResDto orderListResDto = OrderListResDto.builder()
                 .id(this.id)
-                .memberEmail(this.member.getEmail())
+                .memberEmail(this.memberEmail)
                 .orderStatus(this.orderStatus)
                 .build();
 
