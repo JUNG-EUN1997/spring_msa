@@ -31,14 +31,16 @@ public class OrderingService {
     private final StockDecreaseEventHandler stockDecreaseEventHandler;
     private final SseController sseController;
     private final RestTemplate restTemplate;
+    private final ProductFeign productFeign;
 
-    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController, RestTemplate restTemplate) {
+    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController, RestTemplate restTemplate, ProductFeign productFeign) {
         this.orderingRepository = orderingRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.stockInventoryService = stockInventoryService;
         this.stockDecreaseEventHandler = stockDecreaseEventHandler;
         this.sseController = sseController;
         this.restTemplate = restTemplate;
+        this.productFeign = productFeign;
     }
 
     public Ordering orderRestTemplateCreate(List<OrderSaveReqDto> dtos){
@@ -134,16 +136,12 @@ public class OrderingService {
                 .build();
 
         for (OrderSaveReqDto saveProduct : dtos) {
-            String productGetUrl = "http://product-service/product/"+saveProduct.getProductId();
-            HttpHeaders httpHeaders = new HttpHeaders();
-            String token = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
-            httpHeaders.set("Authorization", token);
-            HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
-            ResponseEntity<CommonResDto> productEntity = restTemplate // restTemplate의 return 타입은 무조건 REsponseEntity 이다
-                    .exchange(productGetUrl, HttpMethod.GET,entity, CommonResDto.class);
+
+//            ResponseEntity가 기본 응답 값이므로, 바로 CommonResDto로 매칭
+//            아래와 같이 호출 시.
+            CommonResDto commonResDto = productFeign.getProductById(saveProduct.getProductId());
             ObjectMapper objectMapper = new ObjectMapper();
-            ProductDto productDto = objectMapper.convertValue(productEntity.getBody().getResult(), ProductDto.class);
-            System.out.println(productDto);
+            ProductDto productDto = objectMapper.convertValue(commonResDto.getResult(),ProductDto.class);
 
             if(productDto.getName().contains("sale")){
                 int newQuantity = stockInventoryService.decreaseStock(saveProduct.getProductId()
@@ -159,13 +157,8 @@ public class OrderingService {
                 if(productDto.getStockQuantity() < saveProduct.getProductCount()){
                     throw new IllegalArgumentException("재고가 부족합니다.");
                 }
-
-                String updateUrl = "http://product-service/product/updatestock";
-                httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-                HttpEntity<ProductUpdateStockDto> updateEntity = new HttpEntity<>(
-                        new ProductUpdateStockDto(saveProduct.getProductId(), saveProduct.getProductCount()), httpHeaders);
-
-                restTemplate.exchange(updateUrl, HttpMethod.PUT, updateEntity, Void.class );
+                productFeign.updateProductStock(
+                        new ProductUpdateStockDto(saveProduct.getProductId(), saveProduct.getProductCount()));
 
             }
 
