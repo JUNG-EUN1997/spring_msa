@@ -56,7 +56,7 @@ public class JwtAuthFilter extends GenericFilter {
                 authorities.add(new SimpleGrantedAuthority("ROLE_"+claims.get("role")));
                 UserDetails userDetails = new User(claims.getSubject(),"", authorities);
 
-                Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails,"",userDetails.getAuthorities());
+                Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails,bearerToken,userDetails.getAuthorities());
 //            나 자신의 정보가 1인지 2인지 filetring하는 것은 > user의 정보는 authentication에 들어가있다.
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 

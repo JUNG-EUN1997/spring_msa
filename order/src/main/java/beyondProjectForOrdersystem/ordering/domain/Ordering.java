@@ -48,12 +48,12 @@ public class Ordering extends BaseTimeEntity {
 
         for (OrderDetail detail : this.getOrderDetails()) {
 
-//            OrderListResDto.OrderDetailDto orderDetailDto = OrderListResDto.OrderDetailDto.builder()
-//                    .id(detail.getId())
-//                    .productName(detail.getProduct().getName())
-//                    .count(detail.getQuantity())
-//                    .build();
-//            orderListResDto.getOrderDetailDtos().add(orderDetailDto);
+            OrderListResDto.OrderDetailDto orderDetailDto = OrderListResDto.OrderDetailDto.builder()
+                    .id(detail.getId())
+                    .productId(detail.getProductId())
+                    .count(detail.getQuantity())
+                    .build();
+            orderListResDto.getOrderDetailDtos().add(orderDetailDto);
 
             orderListResDto.getOrderDetailDtos().add(detail.fromEntity());
         }

@@ -5,6 +5,7 @@ import beyondProjectForOrdersystem.product.domain.Product;
 import beyondProjectForOrdersystem.product.dto.ProductResDto;
 import beyondProjectForOrdersystem.product.dto.ProductSaveReqDto;
 import beyondProjectForOrdersystem.product.dto.ProductSearchDto;
+import beyondProjectForOrdersystem.product.dto.ProductUpdateStockDto;
 import beyondProjectForOrdersystem.product.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
+import javax.persistence.EntityNotFoundException;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
@@ -146,6 +148,19 @@ public class ProductService {
         Page<Product> listProduct = productRepository.findAll(specification, pageable);
         Page<ProductResDto> productResDtoPage = listProduct.map(a->a.fromEntity());
         return productResDtoPage;
+    }
+
+    public ProductResDto productDetail(Long id){
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("없는 상품입니다."));
+        ProductResDto productResDto = product.fromEntity();
+        return productResDto;
+    }
+
+    public Product productStockUpdate(ProductUpdateStockDto dto){
+        Product product = productRepository.findById(dto.getProductId()).orElseThrow(() -> new EntityNotFoundException("없는 상품입니다."));
+        product.updateStockQuantity("minus", dto.getProductQuantity());
+        return product;
     }
 
 }

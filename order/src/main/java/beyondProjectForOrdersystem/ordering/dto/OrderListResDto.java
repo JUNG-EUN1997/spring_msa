@@ -27,7 +27,8 @@ public class OrderListResDto {
     @Builder
     public static class OrderDetailDto{
         private Long id;
-        private String productName;
+//        private String productName;
+        private Long productId;
         private Integer count;
     }
 }

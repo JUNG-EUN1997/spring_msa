@@ -8,7 +8,7 @@ group = 'com.beyond.ordersystem'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	sourceCompatibility ='11'
+	sourceCompatibility = '11'
 }
 
 repositories {
@@ -16,32 +16,20 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
 
-//	로그인을 위한 암호화 의존성
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-//	해당 의존성 추가 시, API를 호출하면 인증을 요구하는 (401) 오류 발생
+}
 
-	implementation 'org.springframework.boot:spring-boot-starter-web'
+// 스프링 클라우드에 대한 버전 지정
+ext {
+	set('springCloudVersion', '2021.0.8')
+}
 
-//	dto값 검증 어노테이션 제공을 위한 의존성 추가 : 240725
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-//	jwt토큰 관련 라이브러리 추가
-	implementation 'io.jsonwebtoken:jjwt:0.9.1'
-
-//	파일처리를 위한 aws 의존성 추가
-	implementation 'software.amazon.awssdk:s3:2.17.58'
-
-//	동시성 제어를 위한 이벤트 기반 rabbitmq 의존성 추가 : 240730
-	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
 }
 
 tasks.named('test') {

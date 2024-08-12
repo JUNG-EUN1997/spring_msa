@@ -5,11 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ProductSearchDto {
-    private String category;
-    private String searchName;
+@Data
+public class ProductUpdateStockDto {
+    private Long productId;
+    private Integer productQuantity;
 }

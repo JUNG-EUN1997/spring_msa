@@ -1,16 +1,19 @@
 package beyondProjectForOrdersystem.ordering.dto;
 
-import beyondProjectForOrdersystem.ordering.domain.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderUpdateReqDto {
+@Builder
+public class ProductDto {
     private Long id;
-    private OrderStatus orderStatus;
+    private String name;
+    private String category;
+    private Integer price;
+    private Integer stockQuantity;
+    private String imagePath;
 }

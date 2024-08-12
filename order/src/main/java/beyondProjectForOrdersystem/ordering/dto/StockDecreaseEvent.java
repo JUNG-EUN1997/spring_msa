@@ -1,4 +1,4 @@
-package beyondProjectForOrdersystem.member.dto;
+package beyondProjectForOrdersystem.ordering.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

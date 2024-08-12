@@ -5,6 +5,7 @@ import beyondProjectForOrdersystem.product.domain.Product;
 import beyondProjectForOrdersystem.product.dto.ProductResDto;
 import beyondProjectForOrdersystem.product.dto.ProductSaveReqDto;
 import beyondProjectForOrdersystem.product.dto.ProductSearchDto;
+import beyondProjectForOrdersystem.product.dto.ProductUpdateStockDto;
 import beyondProjectForOrdersystem.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -39,5 +40,18 @@ public class ProductController {
         return new ResponseEntity<>(commonResDto, HttpStatus.OK);
     }
 
+    @GetMapping("/product/{id}")
+    public ResponseEntity<?> productDetail(@PathVariable Long id) {
+        ProductResDto products = productService.productDetail(id);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "정상조회 완료", products);
+        return new ResponseEntity<>(commonResDto, HttpStatus.OK);
+    }
+
+    @PutMapping("/product/updatestock")
+    public ResponseEntity<?> productStockUpdate(@RequestBody ProductUpdateStockDto dto) {
+        Product product = productService.productStockUpdate(dto);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "정상 업데이트 완료", product.getId());
+        return new ResponseEntity<>(commonResDto, HttpStatus.OK);
+    }
 
 }

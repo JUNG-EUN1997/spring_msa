@@ -1,20 +1,23 @@
 package beyondProjectForOrdersystem.ordering.service;
 
+import beyondProjectForOrdersystem.common.configs.RestTemplateConfig;
+import beyondProjectForOrdersystem.common.dto.CommonResDto;
 import beyondProjectForOrdersystem.common.service.StockInventoryService;
 import beyondProjectForOrdersystem.ordering.controller.SseController;
 import beyondProjectForOrdersystem.ordering.domain.OrderDetail;
 import beyondProjectForOrdersystem.ordering.domain.OrderStatus;
 import beyondProjectForOrdersystem.ordering.domain.Ordering;
-import beyondProjectForOrdersystem.ordering.dto.OrderListResDto;
-import beyondProjectForOrdersystem.ordering.dto.OrderSaveReqDto;
-import beyondProjectForOrdersystem.ordering.dto.OrderUpdateReqDto;
+import beyondProjectForOrdersystem.ordering.dto.*;
 import beyondProjectForOrdersystem.ordering.repository.OrderDetailRepository;
 import beyondProjectForOrdersystem.ordering.repository.OrderingRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
@@ -27,16 +30,18 @@ public class OrderingService {
     private final StockInventoryService stockInventoryService;
     private final StockDecreaseEventHandler stockDecreaseEventHandler;
     private final SseController sseController;
+    private final RestTemplate restTemplate;
 
-    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController) {
+    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController, RestTemplate restTemplate) {
         this.orderingRepository = orderingRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.stockInventoryService = stockInventoryService;
         this.stockDecreaseEventHandler = stockDecreaseEventHandler;
         this.sseController = sseController;
+        this.restTemplate = restTemplate;
     }
 
-    public Ordering orderCreate(List<OrderSaveReqDto> dtos){
+    public Ordering orderRestTemplateCreate(List<OrderSaveReqDto> dtos){
 //        필터 레이어에서 필터링된 토큰에 저장된 멤버 갖고오기 ⭐⭐⭐⭐⭐⭐
         String memberEmail = SecurityContextHolder.getContext().getAuthentication().getName(); // ⭐
 
@@ -64,32 +69,55 @@ public class OrderingService {
         * */
 
 
-        /*for (OrderSaveReqDto saveProduct : dtos) {
+//        방법1 : 조회 resttemplate(동기) / 변경 resttemplate(동기)
+//        방법2 : 조회 feignclient(동기) / 변경 faeignclient(동기)
+//        방법3 : 조회 feignclient(동기) / 변경 kafka(비동기)
 
-            if(product.getName().contains("sale")){
+        for (OrderSaveReqDto saveProduct : dtos) {
+            String productGetUrl = "http://product-service/product/"+saveProduct.getProductId();
+            HttpHeaders httpHeaders = new HttpHeaders();
+            String token = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
+            httpHeaders.set("Authorization", token);
+            HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
+            ResponseEntity<CommonResDto> productEntity = restTemplate // restTemplate의 return 타입은 무조건 REsponseEntity 이다
+                    .exchange(productGetUrl, HttpMethod.GET,entity, CommonResDto.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductDto productDto = objectMapper.convertValue(productEntity.getBody().getResult(), ProductDto.class);
+            System.out.println(productDto);
+
+            if(productDto.getName().contains("sale")){
                 int newQuantity = stockInventoryService.decreaseStock(saveProduct.getProductId()
                         ,saveProduct.getProductCount()).intValue();
                 if(newQuantity < 0){
                     throw new IllegalArgumentException("재고 부족");
                 }
 
-                stockDecreaseEventHandler.publish(new StockDecreaseEvent(product.getId(), saveProduct.getProductCount()));
+                stockDecreaseEventHandler.publish(
+                        new StockDecreaseEvent(productDto.getId(), saveProduct.getProductCount()));
 
             }else{
-                if(product.getStockQuantity() < saveProduct.getProductCount()){
+                if(productDto.getStockQuantity() < saveProduct.getProductCount()){
                     throw new IllegalArgumentException("재고가 부족합니다.");
                 }
-                product.updateStockQuantity("minus",saveProduct.getProductCount());
+//                productDto.updateStockQuantity("minus",saveProduct.getProductCount());
+
+                String updateUrl = "http://product-service/product/updatestock";
+                httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<ProductUpdateStockDto> updateEntity = new HttpEntity<>(
+                        new ProductUpdateStockDto(saveProduct.getProductId(), saveProduct.getProductCount()), httpHeaders);
+
+                restTemplate.exchange(updateUrl, HttpMethod.PUT, updateEntity, Void.class );
+
             }
 
             OrderDetail orderDetail = OrderDetail.builder()
                     .quantity(saveProduct.getProductCount())
-                    .product(product)
+                    .productId(productDto.getId())
                     .ordering(ordering)
                     .build();
 
             ordering.getOrderDetails().add(orderDetail);
-        }*/
+        }
 
         Ordering savedOrdering = orderingRepository.save(ordering);
 
@@ -97,6 +125,68 @@ public class OrderingService {
         sseController.publicsMessage(savedOrdering.fromEntity(), "admin@test.com");
 
         return savedOrdering;
+    }
+
+    public Ordering orderFeignClientCreate(List<OrderSaveReqDto> dtos){
+        String memberEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        Ordering ordering = Ordering.builder()
+                .memberEmail(memberEmail)
+                .build();
+
+        for (OrderSaveReqDto saveProduct : dtos) {
+            String productGetUrl = "http://product-service/product/"+saveProduct.getProductId();
+            HttpHeaders httpHeaders = new HttpHeaders();
+            String token = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
+            httpHeaders.set("Authorization", token);
+            HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
+            ResponseEntity<CommonResDto> productEntity = restTemplate // restTemplate의 return 타입은 무조건 REsponseEntity 이다
+                    .exchange(productGetUrl, HttpMethod.GET,entity, CommonResDto.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductDto productDto = objectMapper.convertValue(productEntity.getBody().getResult(), ProductDto.class);
+            System.out.println(productDto);
+
+            if(productDto.getName().contains("sale")){
+                int newQuantity = stockInventoryService.decreaseStock(saveProduct.getProductId()
+                        ,saveProduct.getProductCount()).intValue();
+                if(newQuantity < 0){
+                    throw new IllegalArgumentException("재고 부족");
+                }
+
+                stockDecreaseEventHandler.publish(
+                        new StockDecreaseEvent(productDto.getId(), saveProduct.getProductCount()));
+
+            }else{
+                if(productDto.getStockQuantity() < saveProduct.getProductCount()){
+                    throw new IllegalArgumentException("재고가 부족합니다.");
+                }
+
+                String updateUrl = "http://product-service/product/updatestock";
+                httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<ProductUpdateStockDto> updateEntity = new HttpEntity<>(
+                        new ProductUpdateStockDto(saveProduct.getProductId(), saveProduct.getProductCount()), httpHeaders);
+
+                restTemplate.exchange(updateUrl, HttpMethod.PUT, updateEntity, Void.class );
+
+            }
+
+            OrderDetail orderDetail = OrderDetail.builder()
+                    .quantity(saveProduct.getProductCount())
+                    .productId(productDto.getId())
+                    .ordering(ordering)
+                    .build();
+
+            ordering.getOrderDetails().add(orderDetail);
+        }
+
+        Ordering savedOrdering = orderingRepository.save(ordering);
+
+        sseController.publicsMessage(savedOrdering.fromEntity(), "admin@test.com");
+
+        return savedOrdering;
+    }
+
+    public Ordering orderFeignKafkaCreate(List<OrderSaveReqDto> dtos){
+        return null;
     }
 
     public Page<OrderListResDto> orderList(Pageable pageable){
