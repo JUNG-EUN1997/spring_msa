@@ -46,6 +46,9 @@ dependencies {
 
 //	feignclient를 사용하기위한 의존성 추가 : api 공식명칭 openfeign
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+//	카프카 의존성 추가
+	implementation 'org.springframework.kafka:spring-kafka'
 }
 
 

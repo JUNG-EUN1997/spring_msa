@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +33,9 @@ public class OrderingService {
     private final SseController sseController;
     private final RestTemplate restTemplate;
     private final ProductFeign productFeign;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController, RestTemplate restTemplate, ProductFeign productFeign) {
+    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController, RestTemplate restTemplate, ProductFeign productFeign, KafkaTemplate<String, Object> kafkaTemplate) {
         this.orderingRepository = orderingRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.stockInventoryService = stockInventoryService;
@@ -41,6 +43,7 @@ public class OrderingService {
         this.sseController = sseController;
         this.restTemplate = restTemplate;
         this.productFeign = productFeign;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public Ordering orderRestTemplateCreate(List<OrderSaveReqDto> dtos){
@@ -178,8 +181,58 @@ public class OrderingService {
         return savedOrdering;
     }
 
+//    제작한 kafka 템플릿 사용 예정
     public Ordering orderFeignKafkaCreate(List<OrderSaveReqDto> dtos){
-        return null;
+        String memberEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        Ordering ordering = Ordering.builder()
+                .memberEmail(memberEmail)
+                .build();
+
+        for (OrderSaveReqDto saveProduct : dtos) {
+
+//            ResponseEntity가 기본 응답 값이므로, 바로 CommonResDto로 매칭
+//            아래와 같이 호출 시.
+            CommonResDto commonResDto = productFeign.getProductById(saveProduct.getProductId());
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductDto productDto = objectMapper.convertValue(commonResDto.getResult(),ProductDto.class);
+
+            if(productDto.getName().contains("sale")){
+                int newQuantity = stockInventoryService.decreaseStock(saveProduct.getProductId()
+                        ,saveProduct.getProductCount()).intValue();
+                if(newQuantity < 0){
+                    throw new IllegalArgumentException("재고 부족");
+                }
+
+                stockDecreaseEventHandler.publish(
+                        new StockDecreaseEvent(productDto.getId(), saveProduct.getProductCount()));
+
+            }else{
+                if(productDto.getStockQuantity() < saveProduct.getProductCount()){
+                    throw new IllegalArgumentException("재고가 부족합니다.");
+                }
+
+//                ⭐kafka 영역⭐
+                ProductUpdateStockDto productUpdateStockDto = new ProductUpdateStockDto(saveProduct.getProductId(), saveProduct.getProductCount());
+//                 topic 이라는 곳에 넣어놓으면 컨슈머(product) 에서 읽어감
+//                 보내는 쪽이 프로듀서(생산자) 받는 쪽이 컨슈머
+                kafkaTemplate.send("product-update-topic", productUpdateStockDto);
+
+            }
+
+            OrderDetail orderDetail = OrderDetail.builder()
+                    .quantity(saveProduct.getProductCount())
+                    .productId(productDto.getId())
+                    .ordering(ordering)
+                    .build();
+
+            ordering.getOrderDetails().add(orderDetail);
+        }
+
+        Ordering savedOrdering = orderingRepository.save(ordering);
+
+        sseController.publicsMessage(savedOrdering.fromEntity(), "admin@test.com");
+
+        return savedOrdering;
     }
 
     public Page<OrderListResDto> orderList(Pageable pageable){

@@ -43,6 +43,9 @@ dependencies {
 //	동시성 제어를 위한 이벤트 기반 rabbitmq 의존성 추가 : 240730
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+
+//	카프카 의존성 추가
+	implementation 'org.springframework.kafka:spring-kafka'
 }
 
 

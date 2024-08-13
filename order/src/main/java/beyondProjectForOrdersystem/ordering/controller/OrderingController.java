@@ -29,7 +29,7 @@ public class OrderingController {
 
     @PostMapping("/order/create")
     public ResponseEntity<?> orderCreate(@RequestBody List<OrderSaveReqDto> dto){
-        Ordering ordering = orderingService.orderFeignClientCreate(dto);
+        Ordering ordering = orderingService.orderFeignKafkaCreate(dto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED,"정상 주문 완료", ordering.getId());
         return new ResponseEntity<>(commonResDto,HttpStatus.CREATED);
     }
