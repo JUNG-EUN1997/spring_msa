@@ -7,14 +7,14 @@ import beyondProjectForOrdersystem.product.dto.ProductSaveReqDto;
 import beyondProjectForOrdersystem.product.dto.ProductSearchDto;
 import beyondProjectForOrdersystem.product.dto.ProductUpdateStockDto;
 import beyondProjectForOrdersystem.product.repository.ProductRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.fasterxml.jackson.core.JsonProcessingException;
+//import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.kafka.annotation.KafkaListener;
+//import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -166,20 +166,20 @@ public class ProductService {
         return product;
     }
 
-    @KafkaListener(topics = "product-update-topic", groupId = "order-group"
-            , containerFactory = "kafkaListenerContainerFactory")
-    public void consumerProductQuantity(String message){ // return 시, string 형식으로 message가 들어옴
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            ProductUpdateStockDto productUpdateStockDto = objectMapper.readValue(message,ProductUpdateStockDto.class);
-            this.productStockUpdate(productUpdateStockDto);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e){
-//            만약, 재고감소가 실패했을 때 원상복구하는 코드 추가해야함
-//            서버 시작 순서 유레카 > 게이트웨이 > 멤버 > 오더 > 프로덕트
-        }
-        System.out.println(message);
-    }
+//    @KafkaListener(topics = "product-update-topic", groupId = "order-group"
+//            , containerFactory = "kafkaListenerContainerFactory")
+//    public void consumerProductQuantity(String message){ // return 시, string 형식으로 message가 들어옴
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        try {
+//            ProductUpdateStockDto productUpdateStockDto = objectMapper.readValue(message,ProductUpdateStockDto.class);
+//            this.productStockUpdate(productUpdateStockDto);
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        } catch (Exception e){
+////            만약, 재고감소가 실패했을 때 원상복구하는 코드 추가해야함
+////            서버 시작 순서 유레카 > 게이트웨이 > 멤버 > 오더 > 프로덕트
+//        }
+//        System.out.println(message);
+//    }
 
 }
