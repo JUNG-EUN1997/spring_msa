@@ -8,6 +8,8 @@ import beyondProjectForOrdersystem.product.dto.ProductSearchDto;
 import beyondProjectForOrdersystem.product.dto.ProductUpdateStockDto;
 import beyondProjectForOrdersystem.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -15,13 +17,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+// @RefreshScope 사용 시, 아래 스프링 Bean은 실시간 config 변경사항의 대상이 된다.
+@RefreshScope
 @RestController
 public class ProductController {
     private final ProductService productService;
 
+    @Value("${message.hello}")
+    private String helloworld;
+
     @Autowired
     public ProductController(ProductService productService){
         this.productService = productService;
+    }
+
+    @GetMapping("/product/config/test")
+    public String configTest(){
+        return helloworld;
     }
 
     @PreAuthorize("hasRole('ADMIN')")

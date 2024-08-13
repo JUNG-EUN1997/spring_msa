@@ -46,6 +46,12 @@ dependencies {
 
 //	카프카 의존성 추가
 //	implementation 'org.springframework.kafka:spring-kafka'
+
+//	configServer를 사용하기위한 의존성 추가 : 240813
+	implementation 'org.springframework.cloud:spring-cloud-starter-config'
+
+//	config를 실시간으로 받을 수 있는 의존성 추가 : 240813
+	implementation 'org.springframework.cloud:spring-cloud-starter-bus-amqp'
 }
 
 
